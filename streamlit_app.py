@@ -13,8 +13,16 @@ MIN_JSON_FILE = "min.json"  # File containing preloaded data for the AI
 # Load chat history from file if it exists
 def load_chat_history():
     if os.path.exists(CHAT_HISTORY_FILE):
-        with open(CHAT_HISTORY_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(CHAT_HISTORY_FILE, "r") as f:
+                content = f.read()
+                # Handle empty file case
+                if not content.strip():
+                    return {}
+                return json.loads(content)
+        except json.JSONDecodeError:
+            st.error("Chat history file is corrupted. Resetting to default.")
+            return {}
     return {}
 
 # Save chat history to file
@@ -30,9 +38,13 @@ def delete_chat_history():
 # Load preloaded data from min.json
 def load_min_json():
     if os.path.exists(MIN_JSON_FILE):
-        with open(MIN_JSON_FILE, "r") as f:
-            return json.load(f)
-    return {}
+        try:
+            with open(MIN_JSON_FILE, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            st.error("Preloaded data file is corrupted. Using default content.")
+            return {"content": "No preloaded data available."}
+    return {"content": "No preloaded data available."}
 
 # Show title and description.
 st.title("💬 Chatbot")
