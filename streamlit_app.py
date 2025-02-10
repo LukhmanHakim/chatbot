@@ -176,5 +176,5 @@ if st.session_state.get("delete_all_chats"):
     st.rerun()  # Refresh the app
 
 # Button to trigger deletion in session state
-if st.sidebar.button("Confirm Delete All Chats (Debug)"):
-    st.session_state["delete_all_chats"] = True
+# if st.sidebar.button("Confirm Delete All Chats (Debug)"):
+    # st.session_state["delete_all_chats"] = True
