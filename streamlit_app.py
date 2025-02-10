@@ -167,10 +167,11 @@ if st.sidebar.button("Delete All Chats"):
     """, height=0)
 
 # Route to handle the deletion of all chats
-if st.experimental_get_query_params().get("action") == ["delete_all_chats"]:
+query_params = st.query_params
+if query_params.get("action") == ["delete_all_chats"]:
     # Clear all chats
     st.session_state.chats = {}
     delete_chat_history()
     st.session_state.current_chat = "Chat 1"
-    st.experimental_set_query_params()  # Clear query params
+    st.query_params.clear()  # Clear query params
     st.rerun()  # Refresh the app
