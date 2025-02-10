@@ -126,7 +126,7 @@ if prompt := st.chat_input("Ask me anything..."):
     )
 
     data = {
-        "model": "llama-3.3-70b-versatile",  # Replace with the Groq model you want to use
+        "model": "deepseek-r1-distill-llama-70b",  # Replace with the Groq model you want to use
         "messages": messages,
         "stream": True,
     }
