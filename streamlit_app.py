@@ -42,16 +42,16 @@ def load_min_json():
                 return json.load(f)
         except json.JSONDecodeError:
             st.error("Preloaded data file is corrupted. Using default content.")
-            return {"content": "Tiada data pra-muatkan tersedia."}
-    return {"content": "Tiada data pra-muatkan tersedia."}
+            return {"content": "No preloaded data available."}
+    return {"content": "No preloaded data available."}
 
 # Show title and description.
 st.title("💬 Jom Besut ChatBox")
 st.write(
     """
-    Selamat datang ke Jom Besut Bot!  
-    Aplikasi ini menggunakan model bahasa canggih untuk menjana respons secara masa nyata.  
-    Anda boleh mencipta dan bertukar antara beberapa perbualan!
+    Welcome to the Jom Besut Bot!  
+    This app uses an advanced language model to generate responses in real-time.  
+    You can create and switch between multiple conversations!
     """
 )
 
@@ -61,17 +61,17 @@ if "chats" not in st.session_state:
 
 # Ensure there's at least one chat available
 if not st.session_state.chats:
-    st.session_state.chats["Perbualan 1"] = []  # Create a default chat if none exist
+    st.session_state.chats["Conversation 1"] = []  # Create a default chat if none exist
 
 if "current_chat" not in st.session_state:
-    st.session_state.current_chat = next(iter(st.session_state.chats), "Perbualan 1")  # Default active chat
+    st.session_state.current_chat = next(iter(st.session_state.chats), "Conversation 1")  # Default active chat
 
 # Sidebar: Dropdown to select or create a new chat
 chat_options = list(st.session_state.chats.keys())
-selected_chat = st.sidebar.selectbox("Pilih Perbualan", chat_options)
-new_chat_name = st.sidebar.text_input("Cipta Perbualan Baru", placeholder="Masukkan nama perbualan")
+selected_chat = st.sidebar.selectbox("Select Conversation", chat_options)
+new_chat_name = st.sidebar.text_input("Create New Conversation", placeholder="Enter conversation name")
 
-if st.sidebar.button("Tambah Perbualan"):
+if st.sidebar.button("Add Conversation"):
     if new_chat_name.strip() and new_chat_name not in st.session_state.chats:
         st.session_state.chats[new_chat_name] = []  # Create a new chat
         st.session_state.current_chat = new_chat_name  # Switch to the new chat
@@ -84,7 +84,7 @@ if selected_chat != st.session_state.current_chat:
 
 # Ensure the current chat exists in the chats dictionary
 if st.session_state.current_chat not in st.session_state.chats:
-    st.session_state.current_chat = next(iter(st.session_state.chats), "Perbualan 1")  # Fallback to default chat
+    st.session_state.current_chat = next(iter(st.session_state.chats), "Conversation 1")  # Fallback to default chat
 
 # Display the existing chat messages in a styled format.
 for message in st.session_state.chats[st.session_state.current_chat]:
@@ -92,7 +92,7 @@ for message in st.session_state.chats[st.session_state.current_chat]:
         st.markdown(message["content"])
 
 # Create a chat input field to allow the user to enter a message.
-if prompt := st.chat_input("Tanya saya apa-apa..."):
+if prompt := st.chat_input("Ask me anything..."):
     # Store and display the current prompt.
     st.session_state.chats[st.session_state.current_chat].append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="👤"):  # User avatar
@@ -107,7 +107,7 @@ if prompt := st.chat_input("Tanya saya apa-apa..."):
 
     # Load preloaded data from min.json
     min_data = load_min_json()
-    system_content = min_data.get("content", "Tiada data pra-muatkan tersedia.")
+    system_content = min_data.get("content", "No preloaded data available.")
 
     # Check if the user's prompt relates to Jom Besut (case-insensitive)
     if "jom besut" in prompt.lower():
@@ -122,7 +122,7 @@ if prompt := st.chat_input("Tanya saya apa-apa..."):
 
     # Detect if the user is speaking Malay
     if any(word in prompt.lower() for word in ["selamat", "terima kasih", "jom", "besut", "malaysia"]):
-        system_message_malay = {"role": "system", "content": "Sila beri jawapan dalam Bahasa Melayu."}
+        system_message_malay = {"role": "system", "content": "Please respond in Malay."}
         messages.append(system_message_malay)
 
     messages.extend(
@@ -161,6 +161,9 @@ if prompt := st.chat_input("Tanya saya apa-apa..."):
                             st.write(f"Raw line: {line}")
                             continue  # Skip invalid JSON lines
 
+        # Post-process the response to remove <think> tags
+        response_text = response_text.replace("<think>", "").replace("</think>", "")
+
         # Display the assistant's response after accumulating all chunks.
         if response_text.strip():  # Only display non-empty responses
             with st.chat_message("assistant", avatar="🤖"):  # Assistant avatar
@@ -174,25 +177,25 @@ if prompt := st.chat_input("Tanya saya apa-apa..."):
         st.error(f"An error occurred: {str(e)}")
 
 # Add a "Delete All Chats" button in the sidebar
-if st.sidebar.button("Padam Semua Perbualan"):
+if st.sidebar.button("Delete All Conversations"):
     # Use SweetAlert for confirmation before deleting
     st.components.v1.html("""
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     Swal.fire({
-        title: 'Adakah anda pasti?',
-        text: "Ini akan memadam semua perbualan secara kekal!",
+        title: 'Are you sure?',
+        text: "This will permanently delete all conversations!",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Ya, padamkan!'
+        confirmButtonText: 'Yes, delete!'
     }).then((result) => {
         if (result.isConfirmed) {
             // Trigger Python function to delete chats
             fetch('/delete_all_chats', { method: 'POST' })
                 .then(() => {
-                    Swal.fire('Dipadam!', 'Semua perbualan telah dipadam.', 'success');
+                    Swal.fire('Deleted!', 'All conversations have been deleted.', 'success');
                     location.reload(); // Refresh the page
                 });
         }
@@ -205,10 +208,6 @@ if st.session_state.get("delete_all_chats"):
     # Clear all chats
     st.session_state.chats = {}
     delete_chat_history()
-    st.session_state.current_chat = "Perbualan 1"
+    st.session_state.current_chat = "Conversation 1"
     st.session_state.pop("delete_all_chats")  # Reset the flag
-    st.rerun()  # Refresh the app
-
-# Button to trigger deletion in session state
-if st.sidebar.button("Sahkan Padam Semua Perbualan (Debug)"):
-    st.session_state["delete_all_chats"] = True
+    st.rerun()  # Refresh the
