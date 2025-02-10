@@ -96,15 +96,26 @@ if prompt := st.chat_input("Ask me anything..."):
 
     # Load preloaded data from min.json
     min_data = load_min_json()
-    system_message = {"role": "system", "content": min_data.get("content", "No preloaded data available.")}
+    system_content = min_data.get("content", "No preloaded data available.")
+
+    # Check if the user's prompt relates to Jom Besut (case-insensitive)
+    if "jom besut" in prompt.lower():
+        system_message = {"role": "system", "content": system_content}
+    else:
+        system_message = None
+
+    # Construct the messages list
+    messages = []
+    if system_message:
+        messages.append(system_message)  # Include preloaded data only if relevant
+    messages.extend(
+        {"role": m["role"], "content": m["content"]}
+        for m in st.session_state.chats[st.session_state.current_chat]
+    )
 
     data = {
         "model": "llama-3.3-70b-versatile",  # Replace with the Groq model you want to use
-        "messages": [
-            system_message,  # Include preloaded data as a system message
-            {"role": m["role"], "content": m["content"]}
-            for m in st.session_state.chats[st.session_state.current_chat]
-        ],
+        "messages": messages,
         "stream": True,
     }
 
