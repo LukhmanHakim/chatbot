@@ -25,8 +25,8 @@ def save_chat_history(chat_history):
 st.title("💬 Chatbot")
 st.write(
     """
-    Welcome to the **Groq-Powered Chatbot**!  
-    This app uses Groq's advanced language models to generate responses in real-time.  
+    Welcome to the Jom Besut Chatbot**!  
+    This app uses Jom Besut ChatBox's advanced language models to generate responses in real-time.  
     You can create and switch between multiple chats!
     """
 )
@@ -34,6 +34,11 @@ st.write(
 # Initialize session state for managing multiple chats
 if "chats" not in st.session_state:
     st.session_state.chats = load_chat_history()  # Load chat history from file
+
+# Ensure there's at least one chat available
+if not st.session_state.chats:
+    st.session_state.chats["Chat 1"] = []  # Create a default chat if none exist
+
 if "current_chat" not in st.session_state:
     st.session_state.current_chat = next(iter(st.session_state.chats), "Chat 1")  # Default active chat
 
@@ -52,6 +57,10 @@ if st.sidebar.button("Add Chat"):
 # Set the current chat based on the selected chat
 if selected_chat != st.session_state.current_chat:
     st.session_state.current_chat = selected_chat
+
+# Ensure the current chat exists in the chats dictionary
+if st.session_state.current_chat not in st.session_state.chats:
+    st.session_state.current_chat = next(iter(st.session_state.chats), "Chat 1")  # Fallback to default chat
 
 # Display the existing chat messages in a styled format.
 for message in st.session_state.chats[st.session_state.current_chat]:
