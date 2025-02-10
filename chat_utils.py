@@ -82,29 +82,14 @@ def logout():
 
 # Main Chat Application
 def main_app():
-    # Add Bootstrap Navigation Bar for Logged-In Users
-    st.markdown("""
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">Jom Besut ChatBox</a>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('logout').click()">Logout</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    """, unsafe_allow_html=True)
-
     # Sidebar: Display logged-in user's name
-    st.sidebar.title(f"Logged in as: {st.session_state.username}")
-    if st.sidebar.button("Logout", key="logout"):
+    st.sidebar.markdown('<div class="sidebar">', unsafe_allow_html=True)
+    st.sidebar.title(f"{st.session_state.username}")
+    if st.sidebar.button("Logout"):
         logout()
+    st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
     # Show title and description.
-    st.title("💬 Jom Besut ChatBox")
     st.write(
         """
         Welcome to the Jom Besut Bot!  
@@ -146,15 +131,16 @@ def main_app():
 
     # Display the existing chat messages in a styled format.
     for message in st.session_state.chats[st.session_state.current_chat]:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        if message["role"] == "user":
+            st.markdown(f'<div class="chat-message-user">{message["content"]}</div>', unsafe_allow_html=True)
+        elif message["role"] == "assistant":
+            st.markdown(f'<div class="chat-message-assistant">{message["content"]}</div>', unsafe_allow_html=True)
 
     # Create a chat input field to allow the user to enter a message.
     if prompt := st.chat_input("Ask me anything..."):
         # Store and display the current prompt.
         st.session_state.chats[st.session_state.current_chat].append({"role": "user", "content": prompt})
-        with st.chat_message("user", avatar="👤"):  # User avatar
-            st.markdown(prompt)
+        st.markdown(f'<div class="chat-message-user">{prompt}</div>', unsafe_allow_html=True)
 
         # Prepare the request payload for Groq API.
         apiUrl = "https://api.groq.com/openai/v1/chat/completions"
@@ -224,12 +210,12 @@ def main_app():
 
             # Display the assistant's response after accumulating all chunks.
             if response_text.strip():  # Only display non-empty responses
-                with st.chat_message("assistant", avatar="🤖"):  # Assistant avatar
-                    st.markdown(response_text)
+                st.markdown(f'<div class="chat-message-assistant">{response_text}</div>', unsafe_allow_html=True)
                 # Append the assistant's response to the current chat history.
                 st.session_state.chats[st.session_state.current_chat].append({"role": "assistant", "content": response_text})
                 save_chat_history(st.session_state.chats)  # Save updated chat history
             else:
                 st.warning("The assistant did not provide a response.")
+
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
