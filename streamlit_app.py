@@ -1,56 +1,108 @@
 import streamlit as st
-from openai import OpenAI
+import requests
+import json
+
+# Fixed Groq API Key
+GROQ_API_KEY = "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"
 
 # Show title and description.
 st.title("💬 Chatbot")
 st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+    """
+    Welcome to the **Groq-Powered Chatbot**!  
+    This app uses Groq's advanced language models to generate responses in real-time.  
+    You can create and switch between multiple chats!
+    """
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+# Initialize session state for managing multiple chats
+if "chats" not in st.session_state:
+    st.session_state.chats = {"Chat 1": []}  # Default chat
+if "current_chat" not in st.session_state:
+    st.session_state.current_chat = "Chat 1"  # Default active chat
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+# Sidebar: Dropdown to select or create a new chat
+chat_options = list(st.session_state.chats.keys())
+selected_chat = st.sidebar.selectbox("Select Chat", chat_options)
+new_chat_name = st.sidebar.text_input("Create New Chat", placeholder="Enter chat name")
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+if st.sidebar.button("Add Chat"):
+    if new_chat_name.strip() and new_chat_name not in st.session_state.chats:
+        st.session_state.chats[new_chat_name] = []  # Create a new chat
+        st.session_state.current_chat = new_chat_name  # Switch to the new chat
+        st.rerun()  # Refresh the app to update the dropdown
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# Set the current chat based on the selected chat
+if selected_chat != st.session_state.current_chat:
+    st.session_state.current_chat = selected_chat
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+# Display the existing chat messages in a styled format.
+for message in st.session_state.chats[st.session_state.current_chat]:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+# Create a chat input field to allow the user to enter a message.
+if prompt := st.chat_input("Ask me anything..."):
+    # Store and display the current prompt.
+    st.session_state.chats[st.session_state.current_chat].append({"role": "user", "content": prompt})
+    with st.chat_message("user", avatar="👤"):  # User avatar
+        st.markdown(prompt)
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+    # Prepare the request payload for Groq API.
+    apiUrl = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "model": "llama-3.3-70b-versatile",  # Replace with the Groq model you want to use
+        "messages": [
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.chats[st.session_state.current_chat]
+        ],
+        "stream": True,
+    }
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    # Send the request to Groq API and handle streaming response.
+    try:
+        # Accumulate the full response text.
+        response_text = ""
+        with requests.post(apiUrl, headers=headers, json=data, stream=True) as response:
+            response.raise_for_status()  # Raise an exception for HTTP errors
+
+            # Debugging: Log the raw response for inspection.
+            if response.status_code != 200:
+                st.error(f"API returned status code {response.status_code}")
+                st.write(response.text)  # Display raw response for debugging
+                raise Exception("Invalid response from API")
+
+            for line in response.iter_lines(decode_unicode=True):
+                if line:
+                    # Parse the JSON object from the SSE line.
+                    if line.startswith("data: "):
+                        line = line[6:]  # Remove "data: " prefix
+
+                        # Skip non-JSON lines like "[DONE]"
+                        if line.strip() == "[DONE]":
+                            continue
+
+                        try:
+                            chunk = json.loads(line)
+                            delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                            response_text += delta
+                        except json.JSONDecodeError:
+                            st.error("Failed to decode JSON from API response.")
+                            st.write(f"Raw line: {line}")
+                            continue  # Skip invalid JSON lines
+
+        # Display the assistant's response after accumulating all chunks.
+        if response_text.strip():  # Only display non-empty responses
+            with st.chat_message("assistant", avatar="🤖"):  # Assistant avatar
+                st.markdown(response_text)
+            # Append the assistant's response to the current chat history.
+            st.session_state.chats[st.session_state.current_chat].append({"role": "assistant", "content": response_text})
+        else:
+            st.warning("The assistant did not provide a response.")
+
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
