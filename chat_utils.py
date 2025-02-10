@@ -8,8 +8,8 @@ import re
 GROQ_API_KEY = "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"
 # File to store chat histories
 CHAT_HISTORY_FILE = "chat_history.json"
-MIN_JSON_FILE = "min.json"  # File containing preloaded data for the AI
-USER_DATA_FILE = "user_data.json"  # File to store user credentials
+MIN_JSON_FILE     = "min.json"  # File containing preloaded data for the AI
+USER_DATA_FILE    = "user_data.json"  # File to store user credentials
 
 # Load chat history from file if it exists
 def load_chat_history():
