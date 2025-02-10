@@ -1,10 +1,25 @@
 import streamlit as st
 import requests
 import json
-
+import os
 
 # Fixed Groq API Key
 GROQ_API_KEY = "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"
+
+# File to store chat histories
+CHAT_HISTORY_FILE = "chat_history.json"
+
+# Load chat history from file if it exists
+def load_chat_history():
+    if os.path.exists(CHAT_HISTORY_FILE):
+        with open(CHAT_HISTORY_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+# Save chat history to file
+def save_chat_history(chat_history):
+    with open(CHAT_HISTORY_FILE, "w") as f:
+        json.dump(chat_history, f)
 
 # Show title and description.
 st.title("💬 Chatbot")
@@ -18,9 +33,9 @@ st.write(
 
 # Initialize session state for managing multiple chats
 if "chats" not in st.session_state:
-    st.session_state.chats = {"Chat 1": []}  # Default chat
+    st.session_state.chats = load_chat_history()  # Load chat history from file
 if "current_chat" not in st.session_state:
-    st.session_state.current_chat = "Chat 1"  # Default active chat
+    st.session_state.current_chat = next(iter(st.session_state.chats), "Chat 1")  # Default active chat
 
 # Sidebar: Dropdown to select or create a new chat
 chat_options = list(st.session_state.chats.keys())
@@ -31,6 +46,7 @@ if st.sidebar.button("Add Chat"):
     if new_chat_name.strip() and new_chat_name not in st.session_state.chats:
         st.session_state.chats[new_chat_name] = []  # Create a new chat
         st.session_state.current_chat = new_chat_name  # Switch to the new chat
+        save_chat_history(st.session_state.chats)  # Save updated chat history
         st.rerun()  # Refresh the app to update the dropdown
 
 # Set the current chat based on the selected chat
@@ -102,6 +118,7 @@ if prompt := st.chat_input("Ask me anything..."):
                 st.markdown(response_text)
             # Append the assistant's response to the current chat history.
             st.session_state.chats[st.session_state.current_chat].append({"role": "assistant", "content": response_text})
+            save_chat_history(st.session_state.chats)  # Save updated chat history
         else:
             st.warning("The assistant did not provide a response.")
 
