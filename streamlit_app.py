@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import json
 import os
+import re
 
 # Fixed Groq API Key
 GROQ_API_KEY = "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"
@@ -44,6 +45,15 @@ def load_min_json():
             st.error("Preloaded data file is corrupted. Using default content.")
             return {"content": "No preloaded data available."}
     return {"content": "No preloaded data available."}
+
+# Post-process the response to remove <think> tags and filter out invalid characters
+def clean_response(response_text):
+    # Remove <think> tags
+    response_text = response_text.replace("<think>", "").replace("</think>", "")
+    
+    # Remove invalid or unsupported Unicode characters
+    response_text = re.sub(r'[^\x00-\x7F]+', '', response_text)  # Remove non-ASCII characters
+    return response_text
 
 # Show title and description.
 st.title("💬 Jom Besut ChatBox")
@@ -161,8 +171,8 @@ if prompt := st.chat_input("Ask me anything..."):
                             st.write(f"Raw line: {line}")
                             continue  # Skip invalid JSON lines
 
-        # Post-process the response to remove <think> tags
-        response_text = response_text.replace("<think>", "").replace("</think>", "")
+        # Clean the response text
+        response_text = clean_response(response_text)
 
         # Display the assistant's response after accumulating all chunks.
         if response_text.strip():  # Only display non-empty responses
@@ -210,4 +220,8 @@ if st.session_state.get("delete_all_chats"):
     delete_chat_history()
     st.session_state.current_chat = "Conversation 1"
     st.session_state.pop("delete_all_chats")  # Reset the flag
-    st.rerun()  # Refresh the
+    st.rerun()  # Refresh the app
+
+# Button to trigger deletion in session state
+if st.sidebar.button("Confirm Delete All Conversations (Debug)"):
+    st.session_state["delete_all_chats"] = True
