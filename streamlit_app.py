@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import json
 
+
 # Fixed Groq API Key
 GROQ_API_KEY = "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"
 
