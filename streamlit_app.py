@@ -8,6 +8,7 @@ GROQ_API_KEY = "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"
 
 # File to store chat histories
 CHAT_HISTORY_FILE = "chat_history.json"
+MIN_JSON_FILE = "min.json"  # File containing preloaded data for the AI
 
 # Load chat history from file if it exists
 def load_chat_history():
@@ -25,6 +26,13 @@ def save_chat_history(chat_history):
 def delete_chat_history():
     if os.path.exists(CHAT_HISTORY_FILE):
         os.remove(CHAT_HISTORY_FILE)
+
+# Load preloaded data from min.json
+def load_min_json():
+    if os.path.exists(MIN_JSON_FILE):
+        with open(MIN_JSON_FILE, "r") as f:
+            return json.load(f)
+    return {}
 
 # Show title and description.
 st.title("💬 Chatbot")
@@ -85,9 +93,15 @@ if prompt := st.chat_input("Ask me anything..."):
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json",
     }
+
+    # Load preloaded data from min.json
+    min_data = load_min_json()
+    system_message = {"role": "system", "content": min_data.get("content", "No preloaded data available.")}
+
     data = {
         "model": "llama-3.3-70b-versatile",  # Replace with the Groq model you want to use
         "messages": [
+            system_message,  # Include preloaded data as a system message
             {"role": m["role"], "content": m["content"]}
             for m in st.session_state.chats[st.session_state.current_chat]
         ],
