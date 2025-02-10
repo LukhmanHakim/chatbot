@@ -1,9 +1,6 @@
 import streamlit as st
 import requests
 import json
-from PyPDF2 import PdfReader
-from docx import Document as DocxDocument
-import io
 
 # Fixed Groq API Key
 GROQ_API_KEY = "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"
@@ -14,7 +11,7 @@ st.write(
     """
     Welcome to the **Groq-Powered Chatbot**!  
     This app uses Groq's advanced language models to generate responses in real-time.  
-    You can create and switch between multiple chats, and upload documents for context!
+    You can create and switch between multiple chats!
     """
 )
 
@@ -43,36 +40,6 @@ if selected_chat != st.session_state.current_chat:
 for message in st.session_state.chats[st.session_state.current_chat]:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
-# File uploader for document processing
-uploaded_file = st.sidebar.file_uploader("Upload Document", type=["txt", "pdf", "docx"])
-if uploaded_file is not None:
-    # Process the uploaded file
-    file_type = uploaded_file.type
-    file_content = ""
-
-    if file_type == "text/plain":
-        # Read plain text file
-        file_content = uploaded_file.read().decode("utf-8")
-    elif file_type == "application/pdf":
-        # Extract text from PDF
-        pdf_reader = PdfReader(io.BytesIO(uploaded_file.read()))
-        for page in pdf_reader.pages:
-            file_content += page.extract_text()
-    elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        # Extract text from DOCX
-        docx_document = DocxDocument(io.BytesIO(uploaded_file.read()))
-        for paragraph in docx_document.paragraphs:
-            file_content += paragraph.text + "\n"
-
-    # Add the document content to the chat history
-    if file_content.strip():
-        st.session_state.chats[st.session_state.current_chat].append(
-            {"role": "system", "content": f"Document Content:\n{file_content}"}
-        )
-        st.sidebar.success("Document uploaded and added to chat context!")
-    else:
-        st.sidebar.error("Failed to extract content from the uploaded document.")
 
 # Create a chat input field to allow the user to enter a message.
 if prompt := st.chat_input("Ask me anything..."):
