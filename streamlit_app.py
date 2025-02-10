@@ -47,11 +47,11 @@ def load_min_json():
     return {"content": "No preloaded data available."}
 
 # Show title and description.
-st.title("💬 Chatbot")
+st.title("💬 Jom Besut ChatBox")
 st.write(
     """
-    Welcome to the Jom Besut Chatbot!  
-    This app uses Jom Besut ChatBox's advanced language models to generate responses in real-time.  
+    Welcome to the Jom Besut Bot!  
+    This app uses Jom Besut Bot's advanced language models to generate responses in real-time.  
     You can create and switch between multiple chats!
     """
 )
