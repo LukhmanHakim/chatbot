@@ -6,7 +6,6 @@ import re
 
 # Fixed Groq API Key
 GROQ_API_KEY = "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"
-
 # File to store chat histories
 CHAT_HISTORY_FILE = "chat_history.json"
 MIN_JSON_FILE = "min.json"  # File containing preloaded data for the AI
@@ -80,8 +79,62 @@ def logout():
     delete_chat_history()
     st.rerun()
 
+# Custom CSS for chat styling
+def add_custom_css():
+    st.markdown("""
+        <style>
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-message {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .chat-message.user {
+            justify-content: flex-end;
+        }
+        .chat-message.assistant {
+            justify-content: flex-start;
+        }
+        .chat-message .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .chat-message.user .icon {
+            background-color: #28a745;
+            margin-left: 10px;
+            margin-right: 0;
+        }
+        .chat-message .content {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .chat-message.user .content {
+            background-color: #dcf8c6;
+        }
+        .chat-message.assistant .content {
+            background-color: #e9ecef;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 # Main Chat Application
-def main_app():
+def streamlit_app():
+    # Add custom CSS
+    add_custom_css()
+
     # Sidebar: Display logged-in user's name
     st.sidebar.markdown('<div class="sidebar">', unsafe_allow_html=True)
     st.sidebar.title(f"{st.session_state.username}")
@@ -105,7 +158,6 @@ def main_app():
     # Ensure there's at least one chat available
     if not st.session_state.chats:
         st.session_state.chats["Conversation 1"] = []  # Create a default chat if none exist
-
     if "current_chat" not in st.session_state:
         st.session_state.current_chat = next(iter(st.session_state.chats), "Conversation 1")  # Default active chat
 
@@ -113,7 +165,6 @@ def main_app():
     chat_options = list(st.session_state.chats.keys())
     selected_chat = st.sidebar.selectbox("Select Conversation", chat_options)
     new_chat_name = st.sidebar.text_input("Create New Conversation", placeholder="Enter conversation name")
-
     if st.sidebar.button("Add Conversation"):
         if new_chat_name.strip() and new_chat_name not in st.session_state.chats:
             st.session_state.chats[new_chat_name] = []  # Create a new chat
@@ -130,17 +181,34 @@ def main_app():
         st.session_state.current_chat = next(iter(st.session_state.chats), "Conversation 1")  # Fallback to default chat
 
     # Display the existing chat messages in a styled format.
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     for message in st.session_state.chats[st.session_state.current_chat]:
         if message["role"] == "user":
-            st.markdown(f'<div class="chat-message-user">{message["content"]}</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class="chat-message user">
+                    <div class="content">{message["content"]}</div>
+                    <div class="icon">U</div>
+                </div>
+            """, unsafe_allow_html=True)
         elif message["role"] == "assistant":
-            st.markdown(f'<div class="chat-message-assistant">{message["content"]}</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class="chat-message assistant">
+                    <div class="icon">AI</div>
+                    <div class="content">{message["content"]}</div>
+                </div>
+            """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Create a chat input field to allow the user to enter a message.
     if prompt := st.chat_input("Ask me anything..."):
         # Store and display the current prompt.
         st.session_state.chats[st.session_state.current_chat].append({"role": "user", "content": prompt})
-        st.markdown(f'<div class="chat-message-user">{prompt}</div>', unsafe_allow_html=True)
+        st.markdown(f"""
+            <div class="chat-message user">
+                <div class="content">{prompt}</div>
+                <div class="icon">U</div>
+            </div>
+        """, unsafe_allow_html=True)
 
         # Prepare the request payload for Groq API.
         apiUrl = "https://api.groq.com/openai/v1/chat/completions"
@@ -210,12 +278,21 @@ def main_app():
 
             # Display the assistant's response after accumulating all chunks.
             if response_text.strip():  # Only display non-empty responses
-                st.markdown(f'<div class="chat-message-assistant">{response_text}</div>', unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div class="chat-message assistant">
+                        <div class="icon">AI</div>
+                        <div class="content">{response_text}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
                 # Append the assistant's response to the current chat history.
                 st.session_state.chats[st.session_state.current_chat].append({"role": "assistant", "content": response_text})
                 save_chat_history(st.session_state.chats)  # Save updated chat history
             else:
                 st.warning("The assistant did not provide a response.")
-
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
+
+# Run the app
+if __name__ == "__main__":
+    streamlit_app()
