@@ -21,11 +21,16 @@ def save_chat_history(chat_history):
     with open(CHAT_HISTORY_FILE, "w") as f:
         json.dump(chat_history, f)
 
+# Delete chat history file
+def delete_chat_history():
+    if os.path.exists(CHAT_HISTORY_FILE):
+        os.remove(CHAT_HISTORY_FILE)
+
 # Show title and description.
 st.title("💬 Chatbot")
 st.write(
     """
-    Welcome to the Jom Besut Chatbot**!  
+    Welcome to the Jom Besut Chatbot!  
     This app uses Jom Besut ChatBox's advanced language models to generate responses in real-time.  
     You can create and switch between multiple chats!
     """
@@ -133,3 +138,39 @@ if prompt := st.chat_input("Ask me anything..."):
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
+
+# Add a "Delete All Chats" button in the sidebar
+if st.sidebar.button("Delete All Chats"):
+    # Use SweetAlert for confirmation before deleting
+    st.components.v1.html("""
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "This will delete all chats permanently!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Trigger Python function to delete chats
+            fetch('/delete_all_chats', { method: 'POST' })
+                .then(() => {
+                    Swal.fire('Deleted!', 'All chats have been deleted.', 'success');
+                    location.reload(); // Refresh the page
+                });
+        }
+    });
+    </script>
+    """, height=0)
+
+# Route to handle the deletion of all chats
+if st.experimental_get_query_params().get("action") == ["delete_all_chats"]:
+    # Clear all chats
+    st.session_state.chats = {}
+    delete_chat_history()
+    st.session_state.current_chat = "Chat 1"
+    st.experimental_set_query_params()  # Clear query params
+    st.rerun()  # Refresh the app
