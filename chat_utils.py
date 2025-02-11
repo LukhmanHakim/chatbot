@@ -219,7 +219,7 @@ def streamlit_app():
             if uploaded_file.type == "text/plain":
                 document_content = uploaded_file.read().decode("utf-8")
             elif uploaded_file.type == "application/pdf":
-                from PyPDF2 import PdfReader
+                from pypdf import PdfReader
                 pdf_reader = PdfReader(uploaded_file)
                 document_content = "\n".join(page.extract_text() for page in pdf_reader.pages)
             else:
