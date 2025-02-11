@@ -47,8 +47,25 @@ def load_min_json():
             return {"content": "No preloaded data available."}
     return {"content": "No preloaded data available."}
 
+# Load user data (credentials) from file
+def load_user_data():
+    if os.path.exists(USER_DATA_FILE):
+        try:
+            with open(USER_DATA_FILE, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            st.error("User data file is corrupted. Resetting to default.")
+            return {}
+    return {}
+
+# Save user data (credentials) to file
+def save_user_data(user_data):
+    with open(USER_DATA_FILE, "w") as f:
+        json.dump(user_data, f)
+
 # Post-process the response to remove tags and filter out invalid characters
 def clean_response(response_text):
+    # Remove invalid or unsupported Unicode characters
     response_text = re.sub(r'[^\x00-\x7F]+', '', response_text)  # Remove non-ASCII characters
     return response_text
 
@@ -75,11 +92,11 @@ def add_custom_css():
     .user-message {
         background-color: #007bff;
         color: white;
-        padding: 15px 20px; /* Increased padding */
-        border-radius: 15px; /* Slightly rounded corners */
+        padding: 15px 20px;
+        border-radius: 15px;
         margin-bottom: 15px;
-        max-width: 90%; /* Increased width */
-        font-size: 18px; /* Larger font size */
+        max-width: 90%;
+        font-size: 18px;
         align-self: flex-end;
     }
 
@@ -87,11 +104,11 @@ def add_custom_css():
     .assistant-message {
         background-color: #f1f1f1;
         color: black;
-        padding: 15px 20px; /* Increased padding */
-        border-radius: 15px; /* Slightly rounded corners */
+        padding: 15px 20px;
+        border-radius: 15px;
         margin-bottom: 15px;
-        max-width: 90%; /* Increased width */
-        font-size: 18px; /* Larger font size */
+        max-width: 90%;
+        font-size: 18px;
         align-self: flex-start;
     }
 
