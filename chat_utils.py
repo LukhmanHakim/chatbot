@@ -83,19 +83,19 @@ def add_custom_css():
     <style>
     /* General Chat Container */
     .chat-container {
-        max-width: 800px;
+        max-width: 1200px;
         margin: auto;
-        padding: 20px;
+        padding: 10px;
     }
 
     /* User Message Bubble */
     .user-message {
         background-color: #007bff;
         color: white;
-        padding: 15px 20px;
+        padding: 10px 10px;
         border-radius: 15px;
         margin-bottom: 15px;
-        max-width: 90%;
+        max-width: 100%;
         font-size: 18px;
         align-self: flex-end;
     }
@@ -104,10 +104,10 @@ def add_custom_css():
     .assistant-message {
         background-color: #f1f1f1;
         color: black;
-        padding: 15px 20px;
+        padding: 10px 10px;
         border-radius: 15px;
         margin-bottom: 15px;
-        max-width: 90%;
+        max-width: 100%;
         font-size: 18px;
         align-self: flex-start;
     }
