@@ -7,10 +7,11 @@ import re
 # Fixed Groq API Key
 GROQ_API_KEY = "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"
 
-# File to store chat histories
+# File paths
 CHAT_HISTORY_FILE = "chat_history.json"
 MIN_JSON_FILE = "min.json"  # File containing preloaded data for the AI
 USER_DATA_FILE = "user_data.json"  # File to store user credentials
+SESSION_STATE_FILE = "session_state.json"  # File to persist session state
 
 # Load chat history from file if it exists
 def load_chat_history():
@@ -63,9 +64,24 @@ def save_user_data(user_data):
     with open(USER_DATA_FILE, "w") as f:
         json.dump(user_data, f)
 
+# Load session state from file
+def load_session_state():
+    if os.path.exists(SESSION_STATE_FILE):
+        try:
+            with open(SESSION_STATE_FILE, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            st.error("Session state file is corrupted. Resetting to default.")
+            return {}
+    return {}
+
+# Save session state to file
+def save_session_state(session_state):
+    with open(SESSION_STATE_FILE, "w") as f:
+        json.dump(session_state, f)
+
 # Post-process the response to remove tags and filter out invalid characters
 def clean_response(response_text):
-    # Remove invalid or unsupported Unicode characters
     response_text = re.sub(r'[^\x00-\x7F]+', '', response_text)  # Remove non-ASCII characters
     return response_text
 
@@ -75,51 +91,44 @@ def logout():
     st.session_state.username = None
     st.session_state.chats = {}
     delete_chat_history()
+    if os.path.exists(SESSION_STATE_FILE):
+        os.remove(SESSION_STATE_FILE)  # Clear persisted session state
     st.rerun()
 
 # Custom CSS for chat styling
 def add_custom_css():
     st.markdown("""
     <style>
-    /* General Chat Container */
     .chat-container {
-        max-width: 1200px;
+        max-width: 800px;
         margin: auto;
-        padding: 10px;
+        padding: 20px;
     }
-
-    /* User Message Bubble */
     .user-message {
         background-color: #007bff;
         color: white;
-        padding: 10px 10px;
+        padding: 15px 20px;
         border-radius: 15px;
         margin-bottom: 15px;
-        max-width: 100%;
+        max-width: 90%;
         font-size: 18px;
         align-self: flex-end;
     }
-
-    /* Assistant Message Bubble */
     .assistant-message {
         background-color: #f1f1f1;
         color: black;
-        padding: 10px 10px;
+        padding: 15px 20px;
         border-radius: 15px;
         margin-bottom: 15px;
-        max-width: 100%;
+        max-width: 90%;
         font-size: 18px;
         align-self: flex-start;
     }
-
-    /* Input Box */
     .stTextInput > div > div > input {
         border-radius: 10px;
         padding: 10px;
         font-size: 16px;
     }
-
-    /* Smooth Scrolling */
     .chat-box {
         height: 600px;
         overflow-y: auto;
@@ -135,20 +144,38 @@ def streamlit_app():
     # Add custom CSS
     add_custom_css()
 
+    # Load session state from file if it exists
+    if "logged_in" not in st.session_state:
+        session_state = load_session_state()
+        st.session_state.logged_in = session_state.get("logged_in", False)
+        st.session_state.username = session_state.get("username", None)
+        st.session_state.chats = session_state.get("chats", {})
+
+    # If not logged in, redirect to login page
+    if not st.session_state.logged_in:
+        st.write("Please log in to continue.")
+        return
+
     # Sidebar: Display logged-in user's name
     st.sidebar.title(f"Welcome, {st.session_state.username}")
     if st.sidebar.button("Logout"):
         logout()
 
+    # Add "Clear All Chats" button
+    if st.sidebar.button("Clear All Chats"):
+        st.session_state.chats = {}
+        delete_chat_history()
+        st.rerun()
+
     # Show title and description
     st.write("""
-    # Jom Besut Bot  
+    Welcome to the Jom Besut Bot!  
     This app uses an advanced language model to generate responses in real-time.  
     You can create and switch between multiple conversations!
     """)
 
     # Initialize session state for managing multiple chats
-    if "chats" not in st.session_state:
+    if "chats" not in st.session_state or not st.session_state.chats:
         st.session_state.chats = load_chat_history()  # Load chat history from file
     if not st.session_state.chats:
         st.session_state.chats["Conversation 1"] = []  # Create a default chat if none exist
@@ -264,6 +291,14 @@ def streamlit_app():
                 st.warning("The assistant did not provide a response.")
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
+
+    # Persist session state to file
+    session_state_to_save = {
+        "logged_in": st.session_state.logged_in,
+        "username": st.session_state.username,
+        "chats": st.session_state.chats,
+    }
+    save_session_state(session_state_to_save)
 
 # Run the app
 if __name__ == "__main__":
