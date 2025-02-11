@@ -151,7 +151,7 @@ def analyze_document(document_content):
         {"role": "user", "content": document_content},
     ]
     data = {
-        "model": "deepseek-r1-distill-llama-70b",  # Replace with the Groq model you want to use
+        "model": "deepseek-r1-distill-qwen-32b",  # Replace with the Groq model you want to use
         "messages": messages,
         "stream": True,
     }
