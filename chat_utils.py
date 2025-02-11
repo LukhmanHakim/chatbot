@@ -139,6 +139,49 @@ def add_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
+# Analyze uploaded document using Groq API
+def analyze_document(document_content):
+    apiUrl = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    messages = [
+        {"role": "system", "content": "Analyze the following document and provide a summary or key insights:"},
+        {"role": "user", "content": document_content},
+    ]
+    data = {
+        "model": "deepseek-r1-distill-llama-70b",  # Replace with the Groq model you want to use
+        "messages": messages,
+        "stream": True,
+    }
+    try:
+        response_text = ""
+        with requests.post(apiUrl, headers=headers, json=data, stream=True) as response:
+            response.raise_for_status()
+            if response.status_code != 200:
+                st.error(f"API returned status code {response.status_code}")
+                st.write(response.text)
+                raise Exception("Invalid response from API")
+            for line in response.iter_lines(decode_unicode=True):
+                if line:
+                    if line.startswith("data: "):
+                        line = line[6:]
+                        if line.strip() == "[DONE]":
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                            delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                            response_text += delta
+                        except json.JSONDecodeError:
+                            st.error("Failed to decode JSON from API response.")
+                            st.write(f"Raw line: {line}")
+                            continue
+        return clean_response(response_text)
+    except Exception as e:
+        st.error(f"An error occurred while analyzing the document: {str(e)}")
+        return None
+
 # Main Chat Application
 def streamlit_app():
     # Add custom CSS
@@ -166,6 +209,28 @@ def streamlit_app():
         st.session_state.chats = {}
         delete_chat_history()
         st.rerun()
+
+    # Document Upload Section
+    st.sidebar.header("Upload Document for Analysis")
+    uploaded_file = st.sidebar.file_uploader("Choose a file", type=["txt", "pdf"])
+    if uploaded_file is not None:
+        st.sidebar.write("File uploaded successfully!")
+        if st.sidebar.button("Analyze Document"):
+            if uploaded_file.type == "text/plain":
+                document_content = uploaded_file.read().decode("utf-8")
+            elif uploaded_file.type == "application/pdf":
+                from PyPDF2 import PdfReader
+                pdf_reader = PdfReader(uploaded_file)
+                document_content = "\n".join(page.extract_text() for page in pdf_reader.pages)
+            else:
+                st.error("Unsupported file type. Please upload a .txt or .pdf file.")
+                return
+
+            st.sidebar.write("Analyzing document...")
+            analysis_result = analyze_document(document_content)
+            if analysis_result:
+                st.sidebar.write("Analysis Complete:")
+                st.sidebar.write(analysis_result)
 
     # Show title and description
     st.write("""
