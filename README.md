@@ -12,7 +12,7 @@ A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
    $ pip install -r requirements.txt
    ```
 
-2. Run the app
+2. Run the app 1
 
    ```
    $ streamlit run streamlit_app.py
