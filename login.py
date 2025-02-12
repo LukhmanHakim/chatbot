@@ -14,4 +14,4 @@ def login_page():
             st.success(f"Welcome back, {username}!")
             st.rerun()
         else:
-            st.error("Invalid username or password.")
+            st.error("Invalid username and password.")

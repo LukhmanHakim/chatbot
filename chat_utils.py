@@ -151,7 +151,7 @@ def analyze_document(document_content):
         {"role": "user", "content": document_content},
     ]
     data = {
-        "model": "deepseek-r1-distill-qwen-32b",  # Replace with the Groq model you want to use
+        "model": "whisper-large-v3",  # Replace with the Groq model you want to use
         "messages": messages,
         "stream": True,
     }
@@ -316,6 +316,8 @@ def streamlit_app():
             "messages": messages,
             "stream": True,
         }
+
+        
 
         # Send the request to Groq API and handle streaming response.
         try:
