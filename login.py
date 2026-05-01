@@ -11,7 +11,7 @@ def login_page():
         if username in user_data and user_data[username] == password:
             st.session_state.logged_in = True
             st.session_state.username = username
-            st.success(f"Welcome back, {username}!")
+            st.success(f"Welcome back master, {username}!")
             st.rerun()
         else:
             st.error("Invalid username and password.")
